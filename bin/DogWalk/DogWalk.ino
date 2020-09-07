@@ -6,10 +6,10 @@
 // rx to pin9, tx to pin10
 #define XBee Serial2
 
-double joystick[4] = {0,0,0,0}; // RY, RX, LY, LX
-double trot_yaw;
-double trot_x;
-double trot_y;
+float joystick[4] = {0,0,0,0}; // RY, RX, LY, LX
+float trot_yaw;
+float trot_x;
+float trot_y;
 
 RobotDog dog;
 
