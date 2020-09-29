@@ -39,9 +39,9 @@ void setup() {
 //  testRotationalAccuracy_WithIMU(); // Yaw back and forth, using IMU
 //  testRotationalAccuracy_NoIMU(); // Yaw forth, Z up and down, without IMU
 //  sweep_z_IMU(Rot(0,0,30), -20, 20); // Z up and down at a given angle
-  testFixedJoint_manual_moving();
+//  testFixedJoint_manual_moving();
 //  printLegs_IMU();
-//printLegs_IMU();
+printLegs_IMU();
 }
 
 void testFixedJoint_manual_moving() {

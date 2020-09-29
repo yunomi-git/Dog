@@ -14,7 +14,7 @@ void setup() {
 void loop() {
   bno_imu.operate();
  //Print Orientations
-
+printOrientation();
 // Print Accelerations
 //  Point accel = bno_imu.getLinearAcceleration();
 //
@@ -27,7 +27,7 @@ void loop() {
 //  Serial.println();
   
 //  printPosition();
-  printOrientationHistory();
+  //printOrientationHistory();
 
   delay(5);
 }
