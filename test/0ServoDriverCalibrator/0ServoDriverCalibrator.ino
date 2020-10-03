@@ -29,12 +29,15 @@ void setup() {
 }
 
 void loop() {
+  // Manual commands
   if (Serial.available()) {
     sig = Serial.parseInt();
     if (sig > 0) {
        pwm.setPWM(channel, 0, sig ); // pwm.setPWM(channel, [begin_time], [end_time])
        Serial.println(sig);
     }
+
+    // Cycle through them all for validation
     if (sig == -10) {
       for (int i = 0; i < NUM_SIG; i++) {
         sig = test_signals[i];

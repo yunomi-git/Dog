@@ -9,7 +9,7 @@ void setup() {
   // put your setup code here, to run once:
 
   // Test Rotation
-  test_rotation_inversion();
+  test_boolean();
   
 }
 
@@ -30,8 +30,8 @@ void test_rotation_inversion() {
   Point p = Point(1,2,3);
   Rot r = Rot(30, 20, 5);
   Serial.print("Original: "); p.print();
-  Serial.print("Rotated -1: "); (p/r).print();
-  Serial.print("Rotated inverse: "); ((p*(-r))).print();
+  Serial.print("Rotated by inverse: "); (p/r).print();
+  Serial.print("Rotated by -1: "); ((p*(-r))).print();
 }
 
 void test_boolean() {
@@ -47,10 +47,10 @@ void test_boolean() {
   else
     Serial.println("p is 0");
 
-  if (POINT_ZERO)
-    Serial.println("p0 is not 0");
+  if (POINT_NULL)
+    Serial.println("NULL evaluates to true");
   else
-    Serial.println("p0 is 0");
+    Serial.println("NULL evaluates to false");
 }
 
 void loop() {

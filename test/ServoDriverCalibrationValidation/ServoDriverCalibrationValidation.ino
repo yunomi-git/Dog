@@ -1,4 +1,4 @@
-// Checks if all servos on dog are calibrated correctly
+// Checks if all servos on dog are calibrated correctly. No legs should be connected
 #include <Dog.h>
 #include <RServoDriver.h>
 #include "SoftwareSerial.h"
