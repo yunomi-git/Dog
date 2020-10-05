@@ -2,8 +2,11 @@
 
 RobotDog dog;
 
+#define start_LED_pin 14
+
 void setup() {
     Serial.begin(9600);
+    digitalWrite(start_LED_pin, HIGH);
     //while (!Serial) {}
     Serial.println("Beginning...");
     dog.begin();
@@ -11,18 +14,24 @@ void setup() {
     Serial.println("Taring IMU...");
     dog.tareIMU();
     Serial.println("Tare done...Actually Starting");
+    digitalWrite(start_LED_pin, LOW);
 }
 
 void loop() {
   Rot IMU_orientation = dog.getBodyIMUOrientation_fG2B();
   Rot Kine_orientation = dog.getBodyKinematicOrientation_fF2B();
-  
-  dog.moveBodyToOrientation(-IMU_orientation, TIME_INSTANT);
+
+  //Rot desired_orientation = Kine_orientation/3-IMU_orientation;
+  Rot desired_orientation = -IMU_orientation;
+  dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);
+  Serial.print("Desired: "); desired_orientation.print();
+  Serial.print("Measured: "); IMU_orientation.print();
+  //  Serial.print(-dog.getBodyIMUOrientation_fG2B().z);
+ // Serial.println();
   dog.operate();
-  Serial.print(dog.getBodyKinematicOrientation_fF2B().y);
-  Serial.print(" ");
-  Serial.print(-dog.getBodyIMUOrientation_fG2B().y);
-  Serial.println();
+//  Serial.print(dog.getBodyKinematicOrientation_fF2B().y);
+//  Serial.print(" ");
+
 }
 
 
