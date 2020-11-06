@@ -79,8 +79,8 @@ void checkTrajectoryComputational() {
     // Instant move: position after 1 tick is the goal position
     Point goal_position = default_starting_position + Point(10, 10, 10);
     Rot goal_orientation = Rot(5, 5, 5);
-    dog.moveBodyToPosition(goal_position, Frame::FLOOR, TIME_INSTANT);
-    dog.moveBodyToOrientation(goal_orientation, TIME_INSTANT);
+    dog.moveToPosition(goal_position, Frame::FLOOR, TIME_INSTANT);
+    dog.moveToOrientation(goal_orientation, TIME_INSTANT);
     dog.feedIMU(goal_orientation);
     dog.operate();
     Serial.println("Instant Move: "); 
@@ -93,10 +93,8 @@ void checkTrajectoryComputational() {
     timer.usePrecision();
     float time_traj = 1.0; // 1 sec
     timer.reset(time_traj/2);
-    dog.moveBodyToPosition(goal_position, Frame::FLOOR, time_traj);
-    dog.moveBodyToOrientation(goal_orientation, time_traj);
-//    dog.feedIMU(goal_orientation);
-    dog.operate();
+    dog.moveToPosition(goal_position, Frame::FLOOR, time_traj);
+    dog.moveToOrientation(goal_orientation, time_traj);
     while (!timer.timeOut()) {dog.operate();}
     Point mid_position_expected = (default_starting_position + goal_position)/2;
     Rot mid_orientation_expected = goal_orientation/2;

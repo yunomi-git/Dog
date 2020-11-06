@@ -4,34 +4,45 @@ RobotDog dog;
 
 #define start_LED_pin 14
 
+Timer measurement_update_timer;
+float measurement_interval = 3.0/1000;
+
 void setup() {
     Serial.begin(9600);
+    pinMode(start_LED_pin, OUTPUT);
     digitalWrite(start_LED_pin, HIGH);
     //while (!Serial) {}
     Serial.println("Beginning...");
     dog.begin();
     dog.resetDefaultStance();
+    digitalWrite(start_LED_pin, LOW);
     Serial.println("Taring IMU...");
+    delay(1000);
+    digitalWrite(start_LED_pin, HIGH);
     dog.tareIMU();
     Serial.println("Tare done...Actually Starting");
     digitalWrite(start_LED_pin, LOW);
+
+    measurement_update_timer.usePrecision();
+    measurement_update_timer.reset(measurement_interval);
 }
 
 void loop() {
-  Rot IMU_orientation = dog.getBodyIMUOrientation_fG2B();
-  Rot Kine_orientation = dog.getBodyKinematicOrientation_fF2B();
-
-  //Rot desired_orientation = Kine_orientation/3-IMU_orientation;
-  Rot desired_orientation = -IMU_orientation;
-  dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);
-  Serial.print("Desired: "); desired_orientation.print();
-  Serial.print("Measured: "); IMU_orientation.print();
-  //  Serial.print(-dog.getBodyIMUOrientation_fG2B().z);
- // Serial.println();
-  dog.operate();
-//  Serial.print(dog.getBodyKinematicOrientation_fF2B().y);
-//  Serial.print(" ");
-
+    if (measurement_update_timer.timeOut()) {
+        Rot IMU_orientation = dog.getBodyIMUOrientation_fG2B();
+       // Rot Kine_orientation = dog.getBodyKinematicOrientation_fF2B();
+      
+        //Rot desired_orientation = Kine_orientation/3-IMU_orientation;
+        Rot desired_orientation = -IMU_orientation;
+        Point desired_position = Point(0, 0, dog.getStartingHeight());
+        dog.moveToOrientation(desired_orientation, TIME_INSTANT);
+        dog.moveToPosition(desired_position, Frame::GROUND, TIME_INSTANT);
+        Serial.print("Desired: "); desired_orientation.print();
+        Serial.print("Measured: "); IMU_orientation.print();
+        measurement_update_timer.reset();
+    }
+  
+    dog.operate();
 }
 
 

@@ -68,7 +68,7 @@ void setup() {
     leg.solveMotion();
     leg.printIkinAngles();
     leg.sendSignals();
-    Serial.print("Match To: C: "); Serial.print(0.0);
+    Serial.print("Match To   : C: "); Serial.print(0.0);
     Serial.print(" S: "); Serial.print(45.0);
     Serial.print(" E: "); Serial.print(110.0);
     Serial.println();
@@ -78,7 +78,7 @@ void setup() {
     leg.solveMotion();
     leg.printIkinAngles();
     leg.sendSignals();
-    Serial.print("Match To: C: "); Serial.print(0.0);
+    Serial.print("Match To   : C: "); Serial.print(0.0);
     Serial.print(" S: "); Serial.print(0.0);
     Serial.print(" E: "); Serial.print(0.0);
     Serial.println();
