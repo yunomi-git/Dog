@@ -73,7 +73,7 @@ Point body_distance_from_original_centroid = POINT_ZERO;
 float joystick[4];
 
 // PARAMETERS
-#define NUM_CREEP_STATES 5
+#define NUM_CREEP_STATES 4
 CreepStateInfo creep_state_info[NUM_CREEP_STATES];
 Point default_body_position = Point(0, 0, 100);
 #define LIFT_HEIGHT 30
@@ -83,7 +83,7 @@ Point default_body_position = Point(0, 0, 100);
 #define ROTATION_INPUT_SCALING 8
 #define ROTATION_LEG_INPUT_MULTIPLIER 3
 
-#define STATE_PREPARE_TIME 0.4
+#define STATE_PREPARE_TIME 0.5
 #define STATE_PREPARE_OVERLAP_FACTOR 0.4
 #define STATE_LIFT_TIME 0.1
 #define STATE_LIFT_OVERLAP_FACTOR 0
@@ -116,7 +116,7 @@ void setup() {
     creep_state_info[1] = CreepStateInfo(STATE_PREPARE_TIME * (1-STATE_PREPARE_OVERLAP_FACTOR), prepareCOM);
     creep_state_info[2] = CreepStateInfo(STATE_LIFT_TIME * (1-STATE_LIFT_OVERLAP_FACTOR), liftFoot);
     creep_state_info[3] = CreepStateInfo(STATE_PLANT_TIME * (1-STATE_PLANT_OVERLAP_FACTOR), plantFoot);
-    creep_state_info[4] = CreepStateInfo(STATE_RETURN_TIME * (1-STATE_RETURN_OVERLAP_FACTOR), returnCOM);
+    //creep_state_info[4] = CreepStateInfo(STATE_RETURN_TIME * (1-STATE_RETURN_OVERLAP_FACTOR), returnCOM);
 
     pinMode(serial_LED_pin, OUTPUT);
     digitalWrite(serial_LED_pin, LOW);
@@ -185,42 +185,40 @@ void getNextMotion(ActionMode mode) {
     } 
 }
 
-int chooseFootToMove() {
-//    float max_distance = 0;
-//    int foot_to_move = 0;
-//    for (int i = 0; i < NUM_LEGS; i++) {
-//        Point next_foot_position = dog.getFootPositionFromBody(i, FRAME::BODY) * desired_rotation + desired_translation;
-//        Point deviation_from_anchor = next_foot_position - calculateNextFootAnchor_fF(i);// needs to be written
-//        float distance = deviation_from_anchor.norm();
-//        if (distance < max_distance) {
-//            foot_to_move = i;
-//            max_distance = distance;
-//        }
-//    }
-//    return foot_to_move;
-    step_order_iterator = (step_order_iterator + 1)%4;
-    return step_order[step_order_iterator];
-}
-
-Point calculateNextFootAnchor_fF(int foot_i) {
-    Point default_anchor = dog.getDefaultFootPosition(foot_i, Frame::BODY) + Point(0, 0, dog.getStartingHeight());
-    Serial.print("Begin Leg Position fF: "); dog.getFootPositionFromBody(foot_i, Frame::FLOOR).print();
-    Serial.print("Default Anchor: "); default_anchor.print();  
-    return (default_anchor  + desired_translation) * (current_rotation + desired_leg_rotation); // body frame movement
-}
 
 void prepareCOM(ActionMode mode) {
     if (mode == STARTUP) {
+        dog.switchFootStance(foot_to_move, FootStance::PLANTED);
+        Point old_body_distance_from_planted_centroid = -(dog.getBodyPositionFromCentroid(Frame::FLOOR) - default_body_position);;
+        
         foot_to_move = chooseFootToMove();
         next_foot_anchor_oC = calculateNextFootAnchor_fF(foot_to_move);
         Serial.print("Next Anchor: "); next_foot_anchor_oC.print();
+        
         dog.switchFootStance(foot_to_move, FootStance::SET);
+        Point old_body_distance_from_set_centroid = -(dog.getBodyPositionFromCentroid(Frame::FLOOR) - default_body_position);
+        body_distance_from_original_centroid = old_body_distance_from_set_centroid - old_body_distance_from_planted_centroid;
         
         float time = creep_state_info[state].period;
-        body_distance_from_original_centroid = -(dog.getBodyPositionFromCentroid(Frame::FLOOR) - default_body_position);
         dog.moveBodyToPositionFromCentroid(default_body_position, Frame::FLOOR, time);
+        dog.moveBodyToOrientation(current_rotation + desired_rotation, time);
+        current_rotation += desired_rotation;    
     } else {
     
+    }
+}
+
+void returnCOM(ActionMode mode) {
+    if (mode == STARTUP) {
+        dog.switchFootStance(foot_to_move, FootStance::PLANTED);
+        Point default_height = Point(0,0,100);
+        
+        float time = creep_state_info[state].period;
+        dog.moveBodyToPositionFromCentroid(default_height, Frame::FLOOR, time);
+        dog.moveBodyToOrientation(current_rotation + desired_rotation, time);
+        current_rotation += desired_rotation;        
+    } else {
+        
     }
 }
 
@@ -249,19 +247,32 @@ void plantFoot(ActionMode mode) {
     }
 }
 
-void returnCOM(ActionMode mode) {
-    if (mode == STARTUP) {
-        dog.switchFootStance(foot_to_move, FootStance::PLANTED);
-        Point default_height = Point(0,0,100);
-        
-        float time = creep_state_info[state].period;
-        dog.moveBodyToPositionFromCentroid(default_height, Frame::FLOOR, time);
-        dog.moveBodyToOrientation(current_rotation + desired_rotation, time);
-        current_rotation += desired_rotation;        
-    } else {
-        
-    }
+
+
+int chooseFootToMove() {
+//    float max_distance = 0;
+//    int foot_to_move = 0;
+//    for (int i = 0; i < NUM_LEGS; i++) {
+//        Point next_foot_position = dog.getFootPositionFromBody(i, FRAME::BODY) * desired_rotation + desired_translation;
+//        Point deviation_from_anchor = next_foot_position - calculateNextFootAnchor_fF(i);// needs to be written
+//        float distance = deviation_from_anchor.norm();
+//        if (distance < max_distance) {
+//            foot_to_move = i;
+//            max_distance = distance;
+//        }
+//    }
+//    return foot_to_move;
+    step_order_iterator = (step_order_iterator + 1)%4;
+    return step_order[step_order_iterator];
 }
+
+Point calculateNextFootAnchor_fF(int foot_i) {
+    Point default_anchor = dog.getDefaultFootPosition(foot_i, Frame::BODY) + Point(0, 0, dog.getStartingHeight());
+    Serial.print("Begin Leg Position fF: "); dog.getFootPositionFromBody(foot_i, Frame::FLOOR).print();
+    Serial.print("Default Anchor: "); default_anchor.print();  
+    return (default_anchor  + desired_translation) * (current_rotation + desired_leg_rotation); // body frame movement
+}
+
 
 void switchToNextState() {
     state = (state+1)%NUM_CREEP_STATES;
