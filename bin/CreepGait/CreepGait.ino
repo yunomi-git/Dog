@@ -41,19 +41,18 @@ struct MotionCommand {
     }
 };
 
-enum CommandType {MOTION, RETURN_LEG, REORIENT};
+enum CommandType {NONE, MOTION, RETURN_LEG, REORIENT};
 
-bool motion_command_recieved = false;
+CommandType command_recieved = NONE;
+CommandType last_command_recieved = command_recieved;
+
 bool leg_return_command_started = false;
-bool orient_command_active = false;
-bool prev_orient_command = orient_command_active;
-bool save_reorientation_command_recieved = false;
 
 MotionCommand desired_motion;
 bool has_returned = true;
 int leg_return_iterator = 0;
 Timer command_check_timer;
-#define COMMAND_CHECK_TIMER_PERIOD 2.0
+#define COMMAND_CHECK_TIMER_PERIOD 1.5
 Rot command_orientation = ROT_ZERO;
 #define ORIENT_TIMER_PERIOD 0.005
 Timer orient_command_timer;
@@ -66,8 +65,6 @@ Timer orient_command_timer;
 #define MAX_X_ORIENTATION 20
 #define MAX_Y_ORIENTATION 20
 #define MAX_Z_ORIENTATION 20
-
-#define DEBUG
 
 void setup() {
     Serial.begin(9600);  
@@ -128,11 +125,14 @@ void processSerialInput() {
 
         command_orientation = Rot(x_angle, y_angle, z_angle);
 
-        motion_command_recieved = false;
-        orient_command_active = true;
+        command_recieved = REORIENT;
     } 
+    else if (buttons_read.indexOf("B1") > 0) {
+        command_recieved = RETURN_LEG;
+        leg_return_command_started = true;
+    }
     else {
-        orient_command_active = false;
+        //orient_command_active = false;
         desired_motion.x_motion = joystick.ry * TRANSLATION_INPUT_SCALING;
         desired_motion.y_motion = -joystick.rx * TRANSLATION_INPUT_SCALING;
         desired_motion.yaw_motion = joystick.lx * -ROTATION_INPUT_SCALING;
@@ -140,27 +140,23 @@ void processSerialInput() {
         Point desired_translation = Point(desired_motion.x_motion, desired_motion.y_motion, 0);
         Rot desired_rotation = Rot(0, 0, desired_motion.yaw_motion);
         if ((desired_translation.norm() > TRANSLATION_INPUT_THRESHOLD) || (desired_rotation.norm() > 3)) {
-            motion_command_recieved = true;
+            command_recieved = MOTION;
         } else {
-            motion_command_recieved = false;
-        }
-    
-        if (buttons_read.indexOf("B1") > 0) {
-            leg_return_command_started = true;
+            command_recieved = NONE;
         }
     }
-
 }
 
 void decideAndSendNextCommandToCoordinator() {
     if (creep_gait_coordinator.isWaiting()) {
-        if (orient_command_active) {
+        if (command_recieved == REORIENT) {
             if (orient_command_timer.timeOut()) {
-                dog.moveBodyToOrientation(command_orientation, TIME_INSTANT);
+                Rot current_orientation = creep_gait_coordinator.getCurrentOrientation();
+                dog.moveBodyToOrientation(command_orientation + current_orientation, TIME_INSTANT);
                 orient_command_timer.reset();
             }
         }
-        else if (motion_command_recieved) {
+        else if (command_recieved == MOTION) {
             creep_gait_coordinator.sendMotionCommand(desired_motion.x_motion, 
                                                      desired_motion.y_motion, 
                                                      desired_motion.yaw_motion);
@@ -195,5 +191,5 @@ void decideAndSendNextCommandToCoordinator() {
 }
 
 void flushInput() {
-    motion_command_recieved = false;
+    command_recieved = NONE;
 }

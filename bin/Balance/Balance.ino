@@ -30,6 +30,7 @@ void setup() {
 void loop() {
     if (measurement_update_timer.timeOut()) {
         Rot IMU_orientation = dog.getBodyIMUOrientation_fG2B();
+        Rot IMU_rot_velocity = dog.getBodyIMURotVelocity_fG2B();
        // Rot Kine_orientation = dog.getBodyKinematicOrientation_fF2B();
       
         //Rot desired_orientation = Kine_orientation/3-IMU_orientation;
