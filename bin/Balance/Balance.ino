@@ -35,8 +35,8 @@ void loop() {
         //Rot desired_orientation = Kine_orientation/3-IMU_orientation;
         Rot desired_orientation = -IMU_orientation;
         Point desired_position = Point(0, 0, dog.getStartingHeight());
-        dog.moveToOrientation(desired_orientation, TIME_INSTANT);
-        dog.moveToPosition(desired_position, Frame::GROUND, TIME_INSTANT);
+        dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);
+        dog.moveBodyToPositionFromCentroid(desired_position, Frame::GROUND, TIME_INSTANT);
         Serial.print("Desired: "); desired_orientation.print();
         Serial.print("Measured: "); IMU_orientation.print();
         measurement_update_timer.reset();
