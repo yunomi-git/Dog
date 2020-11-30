@@ -24,6 +24,7 @@ String buttons_read;
 // LEDs
 #define start_LED_pin 22 // 21 20
 #define serial_LED_pin 21
+#define orientation_LED_pin 20
 
 RobotDog dog;
 CreepGaitCoordinator creep_gait_coordinator(&dog);
@@ -71,6 +72,9 @@ void setup() {
     XBee.begin(19200);
   
     pinMode(start_LED_pin, OUTPUT);
+    pinMode(orientation_LED_pin, OUTPUT);
+    pinMode(serial_LED_pin, OUTPUT);
+
     digitalWrite(start_LED_pin, HIGH);
     //while (!Serial) {}
     Serial.println("Beginning...");
@@ -81,7 +85,6 @@ void setup() {
     Serial.println("Tare done");
     digitalWrite(start_LED_pin, LOW);
   
-    pinMode(serial_LED_pin, OUTPUT);
     digitalWrite(serial_LED_pin, LOW);
     
     
@@ -118,14 +121,16 @@ void receiveAndCheckSerialInput() {
 }
 
 void processSerialInput() {
+  digitalWrite(orientation_LED_pin, LOW);
     if (buttons_read.indexOf("RZ2") > 0) { 
         float x_angle = joystick.rx * MAX_X_ORIENTATION;
         float y_angle = joystick.ry* MAX_Y_ORIENTATION;
-        float z_angle = joystick.lx * MAX_Z_ORIENTATION;
+        float z_angle = -joystick.lx * MAX_Z_ORIENTATION;
 
         command_orientation = Rot(x_angle, y_angle, z_angle);
 
         command_recieved = REORIENT;
+        digitalWrite(orientation_LED_pin, HIGH);
     } 
     else if (buttons_read.indexOf("B1") > 0) {
         command_recieved = RETURN_LEG;

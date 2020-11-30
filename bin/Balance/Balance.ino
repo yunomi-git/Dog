@@ -1,12 +1,10 @@
 #include <Dog.h>
+#include "BalanceHandler.h"
 
 RobotDog dog;
+BalanceHandler balancer(&dog);
 
 #define start_LED_pin 22
-
-Timer measurement_update_timer;
-float measurement_interval = 3.0/1000;
-Rot error_integrator = ROT_ZERO;
 
 void setup() {
     Serial.begin(9600);
@@ -24,28 +22,25 @@ void setup() {
     Serial.println("Tare done...Actually Starting");
     digitalWrite(start_LED_pin, LOW);
 
-    measurement_update_timer.usePrecision();
-    measurement_update_timer.reset(measurement_interval);
+//    balancer.setIDGains(0.010, 0.04);
+//    balancer.setDesiredOrientation(Rot(0, 0, 0));
+//    balancer.setBalancingVelocityLimit(0.2);
+//    balancer.setBalancingMagnitudeLimits(Rot(30, 30, 30));
+
+    
+    balancer.setIDGains(0.000, 0.04);
+    balancer.setBalancingVelocityLimit(10);
+    balancer.setBalancingMagnitudeLimits(Rot(60, 60, 60));
 }
 
 void loop() {
-    if (measurement_update_timer.timeOut()) {
-        Rot IMU_orientation = dog.getBodyIMUOrientation_fG2B();
-        Rot IMU_rot_velocity = dog.getBodyIMURotVelocity_fG2B();
-       // Rot Kine_orientation = dog.getBodyKinematicOrientation_fF2B();
-        error_integrator += IMU_orientation;
-      
-        //Rot desired_orientation = Kine_orientation/3-IMU_orientation;
-        Rot desired_orientation = -(IMU_orientation - IMU_rot_velocity * 0.04 + error_integrator * 0.015);
-        Point desired_position = Point(0, 0, dog.getStartingHeight());
-        dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);
-        dog.moveBodyToPositionFromCentroid(desired_position, Frame::GROUND, TIME_INSTANT);
-        
-        Serial.print("velocity: "); IMU_rot_velocity.print();
-        Serial.print("Desired: "); desired_orientation.print();
-        Serial.print("Measured: "); IMU_orientation.print();
-        measurement_update_timer.reset();
-    }
-  
+    balancer.operate();
+
+    Rot desired_orientation = balancer.getNextKinematicBalancingOrientation();
+    Point desired_position = Point(0, 0, dog.getStartingHeight());
+
+    dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);        
+    dog.moveBodyToPositionFromCentroid(desired_position, Frame::GROUND, TIME_INSTANT);
+
     dog.operate();
 }
