@@ -29,8 +29,8 @@ void setup() {
 
     
     balancer.setIDGains(0.000, 0.04);
-    balancer.setBalancingVelocityLimit(10);
-    balancer.setBalancingMagnitudeLimits(Rot(60, 60, 60));
+    balancer.setBalancingVelocityLimit(0.2);
+    balancer.setBalancingMagnitudeLimits(Rot(20, 20, 20));
 }
 
 void loop() {

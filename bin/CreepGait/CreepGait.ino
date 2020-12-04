@@ -1,6 +1,8 @@
 #include <Dog.h>
 #include "CreepGaitCoordinator.h"
+#include "BalanceHandler.h"
 #include "SoftwareSerial.h"
+#include "FunctionGenerator.h"
 #include "Timer.h"
 
 // Communication
@@ -24,10 +26,11 @@ String buttons_read;
 // LEDs
 #define start_LED_pin 22 // 21 20
 #define serial_LED_pin 21
-#define orientation_LED_pin 20
+#define ground_mode_LED_pin 20
 
 RobotDog dog;
 CreepGaitCoordinator creep_gait_coordinator(&dog);
+BalanceHandler balancer(&dog);
 
 // COORDINATION INFORMATION
 struct MotionCommand {
@@ -53,26 +56,36 @@ MotionCommand desired_motion;
 bool has_returned = true;
 int leg_return_iterator = 0;
 Timer command_check_timer;
-#define COMMAND_CHECK_TIMER_PERIOD 1.5
+#define COMMAND_CHECK_TIMER_PERIOD 0.5
 Rot command_orientation = ROT_ZERO;
 #define ORIENT_TIMER_PERIOD 0.005
 Timer orient_command_timer;
+bool do_balancing = false;
+bool do_reorientation = false;
+bool new_serial_read = false;
 
 // PARAMETERS
+bool use_balancer = true;
+
 #define TRANSLATION_INPUT_SCALING 40
-#define TRANSLATION_INPUT_THRESHOLD 5
+#define TRANSLATION_INPUT_THRESHOLD 15
 #define ROTATION_INPUT_SCALING 8
 
 #define MAX_X_ORIENTATION 20
 #define MAX_Y_ORIENTATION 20
 #define MAX_Z_ORIENTATION 20
 
+FunctionGenerator generator;
+float wave_magnitude = 0;
+float rps = 0.5;
+float magnitude = 10;
+
 void setup() {
     Serial.begin(9600);  
     XBee.begin(19200);
   
     pinMode(start_LED_pin, OUTPUT);
-    pinMode(orientation_LED_pin, OUTPUT);
+    pinMode(ground_mode_LED_pin, OUTPUT);
     pinMode(serial_LED_pin, OUTPUT);
 
     digitalWrite(start_LED_pin, HIGH);
@@ -92,13 +105,23 @@ void setup() {
     Serial.println("...Actually Starting");
     Serial.flush();
 
+    balancer.setIDGains(0.002, 0.04);
+    balancer.setBalancingVelocityLimit(0.2);
+    balancer.setBalancingMagnitudeLimits(Rot(30, 30, 30));
+
     orient_command_timer.reset(ORIENT_TIMER_PERIOD);
 }
 
-void loop() {  
+void loop() {
+    balancer.setDesiredOrientation(creep_gait_coordinator.getCurrentOrientation());
+    balancer.operate();
+    doPIDBalancing();
     receiveAndCheckSerialInput();
-    processSerialInput();
-    decideAndSendNextCommandToCoordinator();
+    if (new_serial_read) {
+        processSerialInput();
+        decideAndSendNextCommandToCoordinator();
+    }
+
 
     creep_gait_coordinator.operate();
     dog.operate();
@@ -114,15 +137,20 @@ void receiveAndCheckSerialInput() {
         joystick.lx = XBee.parseFloat();
         buttons_read = XBee.readStringUntil('\n');
 
+        new_serial_read = true;
         digitalWrite(serial_LED_pin, HIGH);
     } else {
+      new_serial_read = false;
         digitalWrite(serial_LED_pin, LOW);
     }
 }
 
 void processSerialInput() {
-  digitalWrite(orientation_LED_pin, LOW);
-    if (buttons_read.indexOf("RZ2") > 0) { 
+  if (buttons_read.indexOf("RZ1") > 0) {
+      do_reorientation = !do_reorientation;
+  }
+
+    if (do_reorientation) { 
         float x_angle = joystick.rx * MAX_X_ORIENTATION;
         float y_angle = joystick.ry* MAX_Y_ORIENTATION;
         float z_angle = -joystick.lx * MAX_Z_ORIENTATION;
@@ -130,14 +158,12 @@ void processSerialInput() {
         command_orientation = Rot(x_angle, y_angle, z_angle);
 
         command_recieved = REORIENT;
-        digitalWrite(orientation_LED_pin, HIGH);
     } 
     else if (buttons_read.indexOf("B1") > 0) {
         command_recieved = RETURN_LEG;
         leg_return_command_started = true;
     }
     else {
-        //orient_command_active = false;
         desired_motion.x_motion = joystick.ry * TRANSLATION_INPUT_SCALING;
         desired_motion.y_motion = -joystick.rx * TRANSLATION_INPUT_SCALING;
         desired_motion.yaw_motion = joystick.lx * -ROTATION_INPUT_SCALING;
@@ -150,14 +176,43 @@ void processSerialInput() {
             command_recieved = NONE;
         }
     }
+
+    if (buttons_read.indexOf("B2") > 0) {
+        do_balancing = !do_balancing;
+        creep_gait_coordinator.toggleMoveInGroundFrame();
+    }
+}
+
+bool buttonsContains(String button) {
+    return buttons_read.indexOf(button) > 0;
+}
+
+void doPIDBalancing() {
+    digitalWrite(ground_mode_LED_pin, LOW); 
+    if (do_balancing) {
+        digitalWrite(ground_mode_LED_pin, HIGH);
+        Rot balancing_orientation = balancer.getNextKinematicBalancingOrientation();
+        creep_gait_coordinator.modifyBodyOrientation(balancing_orientation);
+    }
 }
 
 void decideAndSendNextCommandToCoordinator() {
+//    digitalWrite(ground_mode_LED_pin, LOW); 
+//    if (do_balancing) {
+//        digitalWrite(ground_mode_LED_pin, HIGH);
+//        Rot balancing_orientation = balancer.getNextKinematicBalancingOrientation();
+//        creep_gait_coordinator.modifyBodyOrientation(balancing_orientation);
+//        //wave_magnitude = generator.makeSineWave(magnitude, rps);
+//        //creep_gait_coordinator.modifyBodyOrientation(Rot(1,0,0) * wave_magnitude);
+//    } else 
+    if (!do_balancing && !do_reorientation){
+         creep_gait_coordinator.modifyBodyOrientation(ROT_ZERO);
+    }
+
     if (creep_gait_coordinator.isWaiting()) {
-        if (command_recieved == REORIENT) {
+        if (do_reorientation) {
             if (orient_command_timer.timeOut()) {
-                Rot current_orientation = creep_gait_coordinator.getCurrentOrientation();
-                dog.moveBodyToOrientation(command_orientation + current_orientation, TIME_INSTANT);
+                creep_gait_coordinator.modifyBodyOrientation(command_orientation);
                 orient_command_timer.reset();
             }
         }
@@ -196,5 +251,10 @@ void decideAndSendNextCommandToCoordinator() {
 }
 
 void flushInput() {
+    joystick.ry = 0;
+    joystick.rx = 0;
+    joystick.ly = 0;
+    joystick.lx = 0;
+    buttons_read = "";
     command_recieved = NONE;
 }
