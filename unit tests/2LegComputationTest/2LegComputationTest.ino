@@ -40,17 +40,17 @@ void setup() {
     Serial.println("Trajectory Check... ");
     // Instant move: position after 1 tick is the goal position
     Point goal_position = default_position + Point(10, 10, 10);
-    leg.moveToPositionFromBody(goal_position, TIME_INSTANT);
+    leg.moveToPositionFromBodyInTime(goal_position, TIME_INSTANT);
     leg.operate();
     Serial.print("Instant Move: "); Serial.println(leg.getPosition_oBfB() == goal_position);
     // Reset
-    leg.moveToPositionFromBody(default_position, TIME_INSTANT);
+    leg.moveToPositionFromBodyInTime(default_position, TIME_INSTANT);
     leg.operate();
     // Slow move
     timer.usePrecision();
     float time_traj = 1.0; // 1 sec
     timer.reset(time_traj/2);
-    leg.moveToPositionFromBody(goal_position, time_traj);
+    leg.moveToPositionFromBodyInTime(goal_position, time_traj);
     while (!timer.timeOut()) {leg.operate();}
     Point mid_position = leg.getPosition_oBfB();
     Point mid_position_expected = (default_position + goal_position)/2;
@@ -58,29 +58,30 @@ void setup() {
     timer.reset(time_traj/2 + 0.1);
     while (!timer.timeOut()) {leg.operate();}
     Serial.print("Timed motion final: "); Serial.println(leg.getPosition_oBfB() == goal_position);
+    leg.getPosition_oBfB().print();
 
     // Kinematics Check: verifies that kinematics are correctly computed for given angles
     Serial.println("Kinematics Checks...");
-    leg.moveToPositionFromBody(default_position, TIME_INSTANT);
+    leg.moveToPositionFromBodyInTime(default_position, TIME_INSTANT);
     leg.operate();
     Point goal_position2 = Point(0, 13.97, -106.06) + mounting_point;
-    leg.moveToPositionFromBody(goal_position2, TIME_INSTANT);
+    leg.moveToPositionFromBodyInTime(goal_position2, TIME_INSTANT);
     leg.solveMotion();
     leg.printIkinAngles();
-    leg.sendSignals();
+    leg.sendSignalsAndSavePosition();
     Serial.print("Match To   : C: "); Serial.print(0.0);
     Serial.print(" S: "); Serial.print(45.0);
     Serial.print(" E: "); Serial.print(110.0);
     Serial.println();
 
     Point goal_position3 = Point(30, 0, -106.06) + mounting_point;
-    leg.moveToPositionFromBody(goal_position3, TIME_INSTANT);
+    leg.moveToPositionFromBodyInTime(goal_position3, TIME_INSTANT);
     leg.solveMotion();
     leg.printIkinAngles();
-    leg.sendSignals();
-    Serial.print("Match To   : C: "); Serial.print(0.0);
-    Serial.print(" S: "); Serial.print(0.0);
-    Serial.print(" E: "); Serial.print(0.0);
+    leg.sendSignalsAndSavePosition();
+    Serial.print("Match To   : C: "); Serial.print(-7.57);
+    Serial.print(" S: "); Serial.print(27.28);
+    Serial.print(" E: "); Serial.print(95.87);
     Serial.println();
 
 
@@ -88,7 +89,7 @@ void setup() {
 
     
     // Live checks: Plug in the servo driver then comment out the desired check.
-    leg.moveToPositionFromBody(default_position, TIME_INSTANT);
+    leg.moveToPositionFromBodyInTime(default_position, TIME_INSTANT);
 
 }
 

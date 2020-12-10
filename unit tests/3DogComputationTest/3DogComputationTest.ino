@@ -38,11 +38,11 @@ void setup() {
 
     // Check accessor values
     Serial.println(); Serial.println("Checking Accessors...");
-    Serial.print("Body Position: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == default_starting_position);
+    Serial.print("Body Position: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == default_starting_position);
     Serial.print("Leg Positions: ");
     temp_bool = true;
     for (int i = 0; i < NUM_LEGS; i++) {
-        temp_bool = temp_bool && (dog.getLegPosition_oB(i, Frame::FLOOR) == default_leg_positions[i]);
+        temp_bool = temp_bool && (dog.getFootPositionFromBody(i, Frame::FLOOR) == default_leg_positions[i]);
     }
     Serial.println(temp_bool);
     Serial.print("Kine Orientation: "); Serial.println(dog.getBodyKinematicOrientation_fF2B() == ROT_ZERO);
@@ -65,6 +65,8 @@ void setup() {
     
     // Check Stances
     checkStanceChangeComputational();
+
+    // make a test for simultaneous body and foot motion
 }
 
 void loop() {
@@ -79,13 +81,13 @@ void checkTrajectoryComputational() {
     // Instant move: position after 1 tick is the goal position
     Point goal_position = default_starting_position + Point(10, 10, 10);
     Rot goal_orientation = Rot(5, 5, 5);
-    dog.moveToPosition(goal_position, Frame::FLOOR, TIME_INSTANT);
-    dog.moveToOrientation(goal_orientation, TIME_INSTANT);
+    dog.moveBodyToPositionFromCentroidInTime(goal_position, Frame::FLOOR, TIME_INSTANT);
+    dog.moveBodyToOrientationInTime(goal_orientation, TIME_INSTANT);
     dog.feedIMU(goal_orientation);
     dog.operate();
     Serial.println("Instant Move: "); 
-    Serial.print("_Position Floor: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == goal_position);
-    Serial.print("_Position Body: "); Serial.println(dog.getBodyPosition_oC(Frame::BODY) == goal_position / goal_orientation);
+    Serial.print("_Position Floor: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == goal_position);
+    Serial.print("_Position Body: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::BODY) == goal_position / goal_orientation);
     Serial.print("_Kine Orientation: "); Serial.println(dog.getBodyKinematicOrientation_fF2B() == goal_orientation);
     // Reset
     dog.resetDefaultStance();
@@ -93,17 +95,17 @@ void checkTrajectoryComputational() {
     timer.usePrecision();
     float time_traj = 1.0; // 1 sec
     timer.reset(time_traj/2);
-    dog.moveToPosition(goal_position, Frame::FLOOR, time_traj);
-    dog.moveToOrientation(goal_orientation, time_traj);
+    dog.moveBodyToPositionFromCentroidInTime(goal_position, Frame::FLOOR, time_traj);
+    dog.moveBodyToOrientationInTime(goal_orientation, time_traj);
     while (!timer.timeOut()) {dog.operate();}
     Point mid_position_expected = (default_starting_position + goal_position)/2;
     Rot mid_orientation_expected = goal_orientation/2;
     Serial.print("Timed motion midway: "); Serial.println();
-    Serial.print("_Position Floor: "); Serial.println((dog.getBodyPosition_oC(Frame::FLOOR) - mid_position_expected).norm() < 0.1);
+    Serial.print("_Position Floor: "); Serial.println((dog.getBodyPositionFromCentroid(Frame::FLOOR) - mid_position_expected).norm() < 0.1);
     Serial.print("_Kine Orientation: "); Serial.println((dog.getBodyKinematicOrientation_fF2B() - mid_orientation_expected).norm() < 0.1);
     timer.reset(time_traj/2 + 0.1);
     while (!timer.timeOut()) {dog.operate();}
-    Serial.print("Timed motion final: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == goal_position);
+    Serial.print("Timed motion final: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == goal_position);
 }
 
 void checkStanceChangeComputational() {
@@ -119,7 +121,7 @@ void checkStanceChangeComputational() {
     for (int i = 1; i < NUM_LEGS; i++) {
       expected_centroid += default_leg_positions[i]/3;
     }
-    Serial.print("_Centroid: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == -expected_centroid);
+    Serial.print("_Centroid: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == -expected_centroid);
     Serial.print("_altered anchor: "); Serial.println(dog.getAnchorPoint_oC(0) == default_leg_positions[0] - expected_centroid);
     Serial.print("_else anchor: "); 
     temp_bool = true;
@@ -130,7 +132,7 @@ void checkStanceChangeComputational() {
     
     Serial.println("Set->Lift");
     dog.switchFootStance(foot_to_switch, FootStance::LIFTED);
-    Serial.print("_Centroid: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == -expected_centroid);
+    Serial.print("_Centroid: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == -expected_centroid);
     Serial.print("_altered no anchor: "); Serial.println(dog.getAnchorPoint_oC(0) == POINT_NULL);
     Serial.print("_else anchor: "); 
     temp_bool = true;
@@ -141,7 +143,7 @@ void checkStanceChangeComputational() {
     
     Serial.println("Lift->Set");
     dog.switchFootStance(foot_to_switch, FootStance::SET);
-    Serial.print("_Centroid: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == -expected_centroid);
+    Serial.print("_Centroid: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == -expected_centroid);
     Serial.print("_altered anchor: "); Serial.println(dog.getAnchorPoint_oC(0) == default_leg_positions[0] - expected_centroid);
     Serial.print("_else anchor: "); 
     temp_bool = true;
@@ -153,7 +155,7 @@ void checkStanceChangeComputational() {
     Serial.println("Set->Plant");
     dog.switchFootStance(foot_to_switch, FootStance::PLANTED);
     expected_centroid = -default_starting_position;
-    Serial.print("_Centroid: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == default_starting_position);
+    Serial.print("_Centroid: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == default_starting_position);
     Serial.print("_anchors: "); 
     temp_bool = true;
     for (int i = 0; i < NUM_LEGS; i++) {
@@ -167,7 +169,7 @@ void checkStanceChangeComputational() {
     for (int i = 1; i < NUM_LEGS; i++) {
       expected_centroid += default_leg_positions[i]/3;
     }
-    Serial.print("_Centroid: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == -expected_centroid);
+    Serial.print("_Centroid: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == -expected_centroid);
     Serial.print("_altered no anchor: "); Serial.println(dog.getAnchorPoint_oC(0) == POINT_NULL);
     Serial.print("_else anchors: "); 
     temp_bool = true;
@@ -179,7 +181,7 @@ void checkStanceChangeComputational() {
     Serial.println("Lift->Plant");
     dog.switchFootStance(foot_to_switch, FootStance::PLANTED);
     expected_centroid = -default_starting_position;
-    Serial.print("_Centroid: "); Serial.println(dog.getBodyPosition_oC(Frame::FLOOR) == default_starting_position);
+    Serial.print("_Centroid: "); Serial.println(dog.getBodyPositionFromCentroid(Frame::FLOOR) == default_starting_position);
     Serial.print("_anchors: "); 
     temp_bool = true;
     for (int i = 0; i < NUM_LEGS; i++) {

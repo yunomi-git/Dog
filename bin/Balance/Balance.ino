@@ -24,12 +24,10 @@ void setup() {
 
 //    balancer.setIDGains(0.010, 0.04);
 //    balancer.setDesiredOrientation(Rot(0, 0, 0));
-//    balancer.setBalancingVelocityLimit(0.2);
 //    balancer.setBalancingMagnitudeLimits(Rot(30, 30, 30));
 
     
-    balancer.setIDGains(0.000, 0.04);
-    balancer.setBalancingVelocityLimit(0.2);
+    balancer.setPIDGains(1, 0.02, 0.04);
     balancer.setBalancingMagnitudeLimits(Rot(20, 20, 20));
 }
 
@@ -39,8 +37,8 @@ void loop() {
     Rot desired_orientation = balancer.getNextKinematicBalancingOrientation();
     Point desired_position = Point(0, 0, dog.getStartingHeight());
 
-    dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);        
-    dog.moveBodyToPositionFromCentroid(desired_position, Frame::GROUND, TIME_INSTANT);
+    dog.moveBodyToOrientationAtSpeed(desired_orientation, DEFAULT_BODY_ORIENTATION_SPEED);
+    dog.moveBodyToPositionFromCentroidAtSpeed(desired_position, Frame::GROUND, DEFAULT_BODY_TRANSLATION_SPEED);  
 
     dog.operate();
 }

@@ -69,7 +69,7 @@ void setup() {
     foot[3]->moveToPositionFromBody(Point(70, 60, -100)); // yaw -30: 67, -109
     foot[3]->operate();
 
-    //straightLineTest(X);
+    straightLineTest(X);
     
 //Timer stopwatch;
 //    // First, make sure angles look right
@@ -119,7 +119,7 @@ void straightLineTest(Direction direction) {
       foot_goal = Point(0, 0, 20);
     }
     reset();
-    float time = 4;
+    float time = 1;
     int state = 1;
     Timer state_timer(time+0.1);
     while(1) {
@@ -127,7 +127,7 @@ void straightLineTest(Direction direction) {
             if (state_timer.timeOut()) {
                 state_timer.reset();
                 for (int i = 0; i < NUM_LEGS; i++) {
-                    foot[i]->moveToPositionFromBody(foot[i]->getDefaultPosition_oBfB() + foot_goal, time);
+                    foot[i]->moveToPositionFromBodyInTime(foot[i]->getDefaultPosition_oBfB() + foot_goal, time);
                 }
                 state = 1;
             }
@@ -135,7 +135,7 @@ void straightLineTest(Direction direction) {
             if (state_timer.timeOut()) {
                 state_timer.reset();
                 for (int i = 0; i < NUM_LEGS; i++) {
-                    foot[i]->moveToPositionFromBody(foot[i]->getDefaultPosition_oBfB() - foot_goal, time);
+                    foot[i]->moveToPositionFromBodyInTime(foot[i]->getDefaultPosition_oBfB() - foot_goal, time);
                 }
                 state = 0;
             }
@@ -189,7 +189,6 @@ void initialize() {
 
     mounting_point = Point(-LENGTH2, WIDTH2, 0);
     leg_bl = DogLeg(&servo_driver,  8,  9, 10, mounting_point, mounting_point - starting_position);
-//     leg_bl.flipLR();
     leg_bl.flipFB();
     leg_bl.setSignalTables(table_chest_bl, table_shoulder_bl, table_elbow_bl);
     leg_bl.calibrateServos(LEG_BL_C_ANG_OFS, LEG_BL_S_ANG_OFS, LEG_BL_E_ANG_OFS);
@@ -197,7 +196,6 @@ void initialize() {
 
     mounting_point = Point( LENGTH2, WIDTH2, 0);
     leg_ul = DogLeg(&servo_driver, 12, 13, 14, mounting_point, mounting_point - starting_position);
-//     leg_ul.flipLR();
     leg_ul.setSignalTables(table_chest_ul, table_shoulder_ul, table_elbow_ul);
     leg_ul.calibrateServos(LEG_UL_C_ANG_OFS, LEG_UL_S_ANG_OFS, LEG_UL_E_ANG_OFS);
     leg_ul.setID(3);
