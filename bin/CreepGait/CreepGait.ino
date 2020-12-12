@@ -123,8 +123,9 @@ void loop() {
     receiveAndCheckSerialInput();
     if (new_serial_read) {
         processSerialInput();
-        decideAndSendNextCommandToCoordinator();
+        //decideAndSendNextCommandToCoordinator();
     }
+    decideAndSendNextCommandToCoordinator();
 
 
     creep_gait_coordinator.operate();
