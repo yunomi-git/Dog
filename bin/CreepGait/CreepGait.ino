@@ -5,11 +5,12 @@
 #include "FunctionGenerator.h"
 #include "Timer.h"
 
-#define DEBUG
+#define FAST_CREEP
+
 
 // Communication
 // rx to pin9, tx to pin10
-#define XBee Serial2
+#define XBee Serial3
 struct Joystick_t {
     float rx;
     float ry;
@@ -117,7 +118,7 @@ void setup() {
 }
 
 void loop() {
-    balancer.setDesiredOrientation(creep_gait_coordinator.getCurrentOrientation());
+    balancer.setDesiredOrientation(creep_gait_coordinator.getCurrentRotation());
     balancer.operate();
     doPIDBalancing();
     receiveAndCheckSerialInput();
@@ -184,7 +185,8 @@ void processSerialInput() {
 
     if (buttons_read.indexOf("B2") > 0) {
         do_balancing = !do_balancing;
-        creep_gait_coordinator.toggleMoveInGroundFrame();
+        creep_gait_coordinator.toggleFollowExternalOrientation();
+        creep_gait_coordinator.toggleMotionInGroundFrame();
     }
 }
 
