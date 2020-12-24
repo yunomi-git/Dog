@@ -15,8 +15,9 @@ void setup() {
 void loop() {
   tracker.operate();
   if (tracker.objectWasDetected()) {
-      tracker.printPixyData();
-//  tracker.printPosition();
+      TrackedObjectDynamics object = tracker.getObjectDynamics();
+//      Serial.print("Depth (mm): "); Serial.print(object.position.z); Serial.println();
+      tracker.printPosition();
   } else {
       Serial.println(".");
   }
