@@ -1,3 +1,5 @@
+#define FAST_CREEP
+
 #include <Dog.h>
 #include "CreepGaitCoordinator.h"
 #include "BalanceHandler.h"
@@ -22,8 +24,8 @@
 #define FORWARD_MOTION_LIMIT 40
 
 #define MOTION_ROTATION_THRESHOLD 19
-#define ROTATION_SCALING 0.5 // should increase
-#define ROTATION_MOTION_LIMIT 5
+#define ROTATION_SCALING 1 // should increase
+#define ROTATION_MOTION_LIMIT 10
 
 
 #define TILT_INPUT_SCALING 0.2

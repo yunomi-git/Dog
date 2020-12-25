@@ -1,3 +1,4 @@
+#define FAST_CREEP
 #include <Dog.h>
 #include "CreepGaitCoordinator.h"
 #include "BalanceHandler.h"
@@ -5,7 +6,7 @@
 #include "FunctionGenerator.h"
 #include "Timer.h"
 
-#define FAST_CREEP
+
 
 
 // Communication
