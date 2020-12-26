@@ -18,20 +18,23 @@
 
 
 
-#define DESIRED_OBJECT_DEPTH  200
-#define MOTION_DEPTH_THRESHOLD  50
+#define DESIRED_OBJECT_DEPTH  250
+#define MOTION_DEPTH_THRESHOLD  75
 #define FORWARD_SCALING 0.5
 #define FORWARD_MOTION_LIMIT 40
+#define DUAL_ROTATION_SCALING 0.75
+#define DUAL_ROTATION_MOTION_LIMIT 10
 
-#define MOTION_ROTATION_THRESHOLD 19
-#define ROTATION_SCALING 1 // should increase
-#define ROTATION_MOTION_LIMIT 10
+
+#define MOTION_PURE_ROTATION_THRESHOLD DUAL_ROTATION_MOTION_LIMIT
+#define PURE_ROTATION_SCALING 1
+#define PURE_ROTATION_MOTION_LIMIT (MOTION_PURE_ROTATION_THRESHOLD * PURE_ROTATION_SCALING)
 
 
 #define TILT_INPUT_SCALING 0.2
 #define PAN_INPUT_SCALING 0.2
 #define MAX_PAN 20
-#define MAX_TILT 20
+#define MAX_TILT 30
 
 #define MAX_ERROR 10
 float pan_error_integrator = 0;
@@ -41,8 +44,8 @@ float prev_tilt_error = 0;
 Timer error_timer;
 #define PAN_D_SCALING 0//-0.1
 #define TILT_D_SCALING 0//-0.1
-#define PAN_I_SCALING 0.0001
-#define TILT_I_SCALING 0.0001
+#define PAN_I_SCALING 0.5
+#define TILT_I_SCALING 0.5
 #define DEBUG
 
 RobotDog dog;
@@ -185,7 +188,7 @@ MotionCommand convertTrackedPositionToMotionCommand() {
         object_depth_history.updateHistory(raw_object_z);
         float object_z = object_depth_history.getValue();
         float object_z_error = object_z - DESIRED_OBJECT_DEPTH;
-        Serial.println(object_z);
+        //Serial.println(object_z);
         
     float dt = error_timer.dt();
     error_timer.reset();
@@ -211,18 +214,28 @@ MotionCommand convertTrackedPositionToMotionCommand() {
                    TILT_I_SCALING * fbound(tilt_error_integrator, -MAX_ERROR, MAX_ERROR);
     command.tilt = fbound(command.tilt, -MAX_TILT, MAX_TILT);
 
-//Serial.println(command.pan);
+    // get the current/measured pan
+    float current_pan;
+    float creep_yaw = creep_gait_coordinator.getCurrentRotation().z;
+    float kinematic_yaw = dog.getBodyKinematicOrientation_fF2B().z;
+    current_pan = kinematic_yaw - creep_yaw;
+
+//    Serial.print("command pan: "); Serial.print(command.pan); Serial.print(", ");
+//    Serial.print("actual: "); Serial.print(current_pan); Serial.println();
+    Serial.print("rotation: "); Serial.print(creep_yaw); Serial.print(", ");
+    Serial.print("kinematic: "); Serial.print(kinematic_yaw); Serial.println();
+
     // obtain motion
     if (has_returned && creep_gait_coordinator.isWaiting()) {
-
-    
-        if (fabs(command.pan) > MOTION_ROTATION_THRESHOLD) {
-            command.yaw_motion = fbound(command.pan * ROTATION_SCALING, -ROTATION_MOTION_LIMIT, ROTATION_MOTION_LIMIT);
+        if (fabs(current_pan) > MOTION_PURE_ROTATION_THRESHOLD) {
+            command.yaw_motion = fbound(current_pan * PURE_ROTATION_SCALING, -PURE_ROTATION_MOTION_LIMIT, PURE_ROTATION_MOTION_LIMIT);
             command.send_motion = true;
             digitalWrite(ground_mode_LED_pin, HIGH);
+            pan_error_integrator = 0;
         } 
         else if (fabs(object_z_error) > MOTION_DEPTH_THRESHOLD) { // object z > or < predetermined
             command.x_motion = fbound(object_z_error * FORWARD_SCALING, -FORWARD_MOTION_LIMIT, FORWARD_MOTION_LIMIT);
+            command.yaw_motion = fbound(current_pan * PURE_ROTATION_SCALING, -PURE_ROTATION_MOTION_LIMIT/2, PURE_ROTATION_MOTION_LIMIT/2);
             command.send_motion = true;
             digitalWrite(start_LED_pin, HIGH);
         }

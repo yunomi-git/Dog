@@ -112,7 +112,7 @@ void setup() {
     Serial.println("...Actually Starting");
     Serial.flush();
 
-    balancer.setPIDGains(1, 0.02, 0.04);
+    balancer.setPIDGains(1, 0.02, 0.08);
     balancer.setBalancingMagnitudeLimits(Rot(30, 30, 30));
 
     orient_command_timer.reset(ORIENT_TIMER_PERIOD);
