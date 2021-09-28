@@ -34,7 +34,7 @@ void setup() {
 void loop() {
   float desired_magnitude = magnitude * sin(2 * M_PI * rps * control_timer.dt());
   Rot desired_orientation = Rot(0, desired_magnitude, 0);
-  dog.moveBodyToOrientation(desired_orientation, TIME_INSTANT);
+  dog.moveBodyToOrientationInTime(desired_orientation, TIME_INSTANT);
  
   Rot IMU_orientation = dog.getBodyIMUOrientation_fG2B();
 //  Rot Kine_orientation = dog.getBodyKinematicOrientation_fF2B();

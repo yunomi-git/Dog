@@ -148,7 +148,7 @@ void straightLineTest(Direction direction) {
             }
             for (int i = 0; i < NUM_LEGS; i++) {
                 if (foot[i]->kinematicsIsValid())
-                    foot[i]->sendSignals();
+                    foot[i]->sendSignalsAndSavePosition();
             }
         //}
 
