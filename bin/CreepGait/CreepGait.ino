@@ -1,13 +1,14 @@
 #define FAST_CREEP
 #include <Dog.h>
-#include "CreepGaitCoordinator.h"
+#include "CreepCoordinatorPolygonalHeuristic.h"
+#include "CreepGaitStateMachine.h"
 #include "BalanceHandler.h"
 #include "SoftwareSerial.h"
 #include "FunctionGenerator.h"
 #include "Timer.h"
 
 
-
+#define DEBUG
 
 // Communication
 // rx to pin9, tx to pin10
@@ -33,7 +34,8 @@ String buttons_read;
 #define ground_mode_LED_pin 20
 
 RobotDog dog;
-CreepGaitCoordinator creep_gait_coordinator(&dog);
+CreepCoordinatorPolygonal creep_gait_coordinator(&dog);
+CreepGaitStateMachine creep_state_machine(&dog, &creep_gait_coordinator);
 BalanceHandler balancer(&dog);
 
 // COORDINATION INFORMATION
@@ -119,7 +121,7 @@ void setup() {
 }
 
 void loop() {
-    balancer.setDesiredOrientation(creep_gait_coordinator.getCurrentRotation());
+    balancer.setDesiredOrientation(creep_state_machine.getCurrentRotation());
     balancer.operate();
     doPIDBalancing();
     receiveAndCheckSerialInput();
@@ -130,7 +132,7 @@ void loop() {
     decideAndSendNextCommandToCoordinator();
 
 
-    creep_gait_coordinator.operate();
+    creep_state_machine.operate();
     dog.operate();
 
     flushInput();
@@ -186,8 +188,8 @@ void processSerialInput() {
 
     if (buttons_read.indexOf("B2") > 0) {
         do_balancing = !do_balancing;
-        creep_gait_coordinator.toggleFollowExternalOrientation();
-        creep_gait_coordinator.toggleMotionInGroundFrame();
+        creep_state_machine.toggleFollowExternalOrientation();
+        creep_state_machine.toggleMotionInGroundFrame();
     }
 }
 
@@ -199,26 +201,26 @@ void doPIDBalancing() {
     digitalWrite(ground_mode_LED_pin, LOW); 
     if (do_balancing) {
         digitalWrite(ground_mode_LED_pin, HIGH);
-        // balancer.setDesiredOrientation(creep_gait_coordinator.getCurrentOrientation());
+        // balancer.setDesiredOrientation(creep_state_machine.getCurrentOrientation());
         Rot balancing_orientation = balancer.getNextKinematicBalancingOrientation();
-        creep_gait_coordinator.modifyBodyOrientation(balancing_orientation);
+        creep_state_machine.modifyBodyOrientation(balancing_orientation);
     }
 }
 
 void decideAndSendNextCommandToCoordinator() {
     if (!do_balancing && !do_reorientation){
-         creep_gait_coordinator.modifyBodyOrientation(ROT_ZERO);
+         creep_state_machine.modifyBodyOrientation(ROT_ZERO);
     }
 
-    if (creep_gait_coordinator.isWaiting()) {
+    if (creep_state_machine.isWaiting()) {
         if (do_reorientation) {
             if (orient_command_timer.timeOut()) {
-                creep_gait_coordinator.modifyBodyOrientation(command_orientation);
+                creep_state_machine.modifyBodyOrientation(command_orientation);
                 orient_command_timer.reset();
             }
         }
         else if (command_recieved == MOTION) {
-            creep_gait_coordinator.sendMotionCommand(desired_motion.x_motion, 
+            creep_state_machine.sendMotionCommand(desired_motion.x_motion, 
                                                      desired_motion.y_motion, 
                                                      desired_motion.yaw_motion);
             command_check_timer.reset(COMMAND_CHECK_TIMER_PERIOD);
@@ -227,21 +229,21 @@ void decideAndSendNextCommandToCoordinator() {
             leg_return_iterator = 0;
         }
         else if (leg_return_command_started) {
-            has_returned = false;
-            if (leg_return_iterator < 4) {
-                creep_gait_coordinator.sendMotionCommandUsingFoot(leg_return_iterator, 0, 0, 0);
-                leg_return_iterator++;
-            } else if (!has_returned) {
-                creep_gait_coordinator.sendReturnToCOMCommand();  
-                has_returned = true;
-                leg_return_command_started = false;
-                leg_return_iterator = 0;
-            }
-            command_check_timer.reset(COMMAND_CHECK_TIMER_PERIOD);
+//            has_returned = false;
+//            if (leg_return_iterator < 4) {
+//                creep_state_machine.sendMotionCommandUsingFoot(leg_return_iterator, 0, 0, 0);
+//                leg_return_iterator++;
+//            } else if (!has_returned) {
+//                creep_state_machine.sendReturnToCOMCommand();  
+//                has_returned = true;
+//                leg_return_command_started = false;
+//                leg_return_iterator = 0;
+//            }
+//            command_check_timer.reset(COMMAND_CHECK_TIMER_PERIOD);
         }
         else if (command_check_timer.timeOut()) {
             if (!has_returned) {
-                creep_gait_coordinator.sendReturnToCOMCommand();  
+                creep_state_machine.sendReturnToCOMCommand();  
                 has_returned = true;
             } 
         } 
