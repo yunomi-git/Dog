@@ -6,27 +6,14 @@
 #include "SoftwareSerial.h"
 #include "FunctionGenerator.h"
 #include "Timer.h"
+#include "GamepadReader.h"
 
 
 #define DEBUG
 
 // Communication
 // rx to pin9, tx to pin10
-#define XBee Serial3
-struct Joystick_t {
-    float rx;
-    float ry;
-    float lx;
-    float ly;
-
-    Joystick_t() {
-        rx = 0; ry = 0; lx = 0; ly = 0;
-    }
-};
-
-Joystick_t joystick;
-//float joystick[4]; // RY, RX, LY, LX
-String buttons_read;
+GamepadReader gamepad;
 
 // LEDs
 #define start_LED_pin 22 // 21 20
@@ -68,7 +55,6 @@ Rot command_orientation = ROT_ZERO;
 Timer orient_command_timer;
 bool do_balancing = false;
 bool do_reorientation = false;
-bool new_serial_read = false;
 
 // PARAMETERS
 bool use_balancer = true;
@@ -88,7 +74,6 @@ float magnitude = 10;
 
 void setup() {
     Serial.begin(9600);  
-    XBee.begin(19200);
   
     pinMode(start_LED_pin, OUTPUT);
     pinMode(ground_mode_LED_pin, OUTPUT);
@@ -125,7 +110,7 @@ void loop() {
     balancer.operate();
     doPIDBalancing();
     receiveAndCheckSerialInput();
-    if (new_serial_read) {
+    if (gamepad.newSerialWasRead()) {
         processSerialInput();
         //decideAndSendNextCommandToCoordinator();
     }
@@ -134,30 +119,23 @@ void loop() {
 
     creep_state_machine.operate();
     dog.operate();
-
-    flushInput();
 }
 
 void receiveAndCheckSerialInput() {
-    if (XBee.available()) {
-        joystick.ry = XBee.parseFloat();
-        joystick.rx = XBee.parseFloat();
-        joystick.ly = XBee.parseFloat();
-        joystick.lx = XBee.parseFloat();
-        buttons_read = XBee.readStringUntil('\n');
-
-        new_serial_read = true;
-        digitalWrite(serial_LED_pin, HIGH);
+    gamepad.operate();
+    if (gamepad.newSerialWasRead()) {
+      digitalWrite(serial_LED_pin, HIGH);
     } else {
-      new_serial_read = false;
-        digitalWrite(serial_LED_pin, LOW);
+      digitalWrite(serial_LED_pin, LOW);
     }
 }
 
 void processSerialInput() {
-  if (buttons_read.indexOf("RZ1") > 0) {
-      do_reorientation = !do_reorientation;
-  }
+    if (gamepad.buttonIsBeingPressed("RZ1")) {
+        do_reorientation = !do_reorientation;
+    }
+  
+    JoystickValues joystick = gamepad.getJoystickValues();
 
     if (do_reorientation) { 
         float x_angle = joystick.rx * MAX_X_ORIENTATION;
@@ -168,7 +146,7 @@ void processSerialInput() {
 
         command_recieved = REORIENT;
     } 
-    else if (buttons_read.indexOf("B1") > 0) {
+    else if (gamepad.buttonIsBeingPressed("B1")) {
         command_recieved = RETURN_LEG;
         leg_return_command_started = true;
     }
@@ -186,15 +164,11 @@ void processSerialInput() {
         }
     }
 
-    if (buttons_read.indexOf("B2") > 0) {
+    if (gamepad.buttonIsBeingPressed("B2")) {
         do_balancing = !do_balancing;
         creep_state_machine.toggleFollowExternalOrientation();
         creep_state_machine.toggleMotionInGroundFrame();
     }
-}
-
-bool buttonsContains(String button) {
-    return buttons_read.indexOf(button) > 0;
 }
 
 void doPIDBalancing() {
@@ -248,13 +222,4 @@ void decideAndSendNextCommandToCoordinator() {
             } 
         } 
     } 
-}
-
-void flushInput() {
-    joystick.ry = 0;
-    joystick.rx = 0;
-    joystick.ly = 0;
-    joystick.lx = 0;
-    buttons_read = "";
-    command_recieved = NONE;
 }
