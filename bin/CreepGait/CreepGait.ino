@@ -15,6 +15,7 @@
 // rx to pin9, tx to pin10
 GamepadReader gamepad;
 
+
 // LEDs
 #define start_LED_pin 22 // 21 20
 #define serial_LED_pin 21
@@ -26,12 +27,12 @@ CreepGaitStateMachine creep_state_machine(&dog, &creep_gait_coordinator);
 BalanceHandler balancer(&dog);
 
 // COORDINATION INFORMATION
-struct MotionCommand {
+struct StepMotionCommand {
     float x_motion;
     float y_motion;
     float yaw_motion;
 
-    MotionCommand() {
+    StepMotionCommand() {
         x_motion = 0;
         y_motion = 0;
         yaw_motion = 0;
@@ -45,7 +46,7 @@ CommandType last_command_recieved = command_recieved;
 
 bool leg_return_command_started = false;
 
-MotionCommand desired_motion;
+StepMotionCommand desired_motion;
 bool has_returned = true;
 int leg_return_iterator = 0;
 Timer command_check_timer;
@@ -194,7 +195,7 @@ void decideAndSendNextCommandToCoordinator() {
             }
         }
         else if (command_recieved == MOTION) {
-            creep_state_machine.sendMotionCommand(desired_motion.x_motion, 
+            creep_state_machine.sendStepMotionCommand(desired_motion.x_motion, 
                                                      desired_motion.y_motion, 
                                                      desired_motion.yaw_motion);
             command_check_timer.reset(COMMAND_CHECK_TIMER_PERIOD);
@@ -205,7 +206,7 @@ void decideAndSendNextCommandToCoordinator() {
         else if (leg_return_command_started) {
 //            has_returned = false;
 //            if (leg_return_iterator < 4) {
-//                creep_state_machine.sendMotionCommandUsingFoot(leg_return_iterator, 0, 0, 0);
+//                creep_state_machine.sendStepMotionCommandUsingFoot(leg_return_iterator, 0, 0, 0);
 //                leg_return_iterator++;
 //            } else if (!has_returned) {
 //                creep_state_machine.sendReturnToCOMCommand();  
